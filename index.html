@@ -484,22 +484,11 @@
   <div class="header-tag">TW</div>
   <div class="header-title">台股分析儀</div>
   <div class="header-sub">AI 動能分析・族群輪漲・恐慌指數</div>
-  <div id="authBar" style="margin-top:12px"></div>
+
 </div>
 
-<!-- Login Prompt -->
-<div id="loginPrompt" style="display:none;padding:32px 20px;text-align:center">
-  <div style="font-size:40px;margin-bottom:12px">🔐</div>
-  <div style="font-size:18px;font-weight:700;margin-bottom:8px">請先登入</div>
-  <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6">使用 Google 帳號登入<br>分析歷史自動儲存到雲端</div>
-  <button onclick="handleSignIn()" style="background:linear-gradient(135deg,#4285f4,#34a853);border:none;border-radius:12px;padding:14px 24px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:10px">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-    使用 Google 帳號登入
-  </button>
-</div>
-
-<!-- Main Content (shown after login) -->
-<div id="mainContent" style="display:none">
+<!-- Main Content -->
+<div id="mainContent" style="display:block">
 
 <!-- Page: 技術分析 -->
 <div class="page active" id="page-tech">
@@ -696,141 +685,43 @@
 </div>
 
 <script type="module">
-// ── Firebase Setup ──
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCzzJekHyRyyNqXvuFbXSyraP28OkEK-uU",
-  authDomain: "taiwan-stock-analyzer-17f8e.firebaseapp.com",
-  projectId: "taiwan-stock-analyzer-17f8e",
-  storageBucket: "taiwan-stock-analyzer-17f8e.firebasestorage.app",
-  messagingSenderId: "627082810118",
-  appId: "1:627082810118:web:e40e5bea8f2f00c3410487"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// ── No login required ──
 let currentUser = null;
 
-// ── Auth UI ──
-function renderAuthBar(user) {
-  const bar = document.getElementById('authBar');
-  if (user) {
-    bar.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px">
-        <img src="${user.photoURL || ''}" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border)" onerror="this.style.display='none'">
-        <span style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName || user.email}</span>
-        <button onclick="handleSignOut()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--sans)">登出</button>
-      </div>`;
-  } else {
-    bar.innerHTML = `
-      <button onclick="handleSignIn()" style="background:linear-gradient(135deg,#4285f4,#34a853);border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);display:flex;align-items:center;gap:8px;width:100%">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        使用 Google 帳號登入
-      </button>`;
-  }
-}
-
-window.handleSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    alert('登入失敗：' + e.message);
-  }
-};
-
-window.handleSignOut = async function() {
-  await signOut(auth);
-};
-
-// ── Auth State ──
-onAuthStateChanged(auth, async (user) => {
-  currentUser = user;
-  renderAuthBar(user);
-  if (user) {
-    // Load saved Gemini API key from Firestore
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists() && userDoc.data().geminiKey) {
-        document.getElementById('apiKeyInput').value = userDoc.data().geminiKey;
-      }
-    } catch(e) {}
-    // Load cloud history
-    await loadCloudHistory();
-    document.getElementById('loginPrompt').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-  } else {
-    document.getElementById('loginPrompt').style.display = 'block';
-    document.getElementById('mainContent').style.display = 'none';
-    analysisHistory = [];
-    renderHistory();
-  }
-});
-
-// Save API key to Firestore when changed
-document.getElementById('apiKeyInput').addEventListener('change', async function() {
-  if (!currentUser) return;
-  const key = this.value.trim();
-  if (key) {
-    try {
-      await setDoc(doc(db, 'users', currentUser.uid), { geminiKey: key }, { merge: true });
-    } catch(e) {}
-  }
-});
-
-// ── Cloud History ──
-async function loadCloudHistory() {
-  if (!currentUser) return;
-  try {
-    const q = query(
-      collection(db, 'users', currentUser.uid, 'history'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    const snap = await getDocs(q);
-    analysisHistory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderHistory();
-  } catch(e) {
-    console.error('載入歷史失敗', e);
-  }
-}
-
+// ── Local History (replaces cloud) ──
 async function saveToCloud(r) {
-  if (!currentUser) return;
-  try {
-    const record = {
-      verdict: r.verdict,
-      verdictType: r.verdictType,
-      stockCode: r.stockCode || '—',
-      stockName: r.stockName || '—',
-      rsi: r.rsi || '—',
-      rsiStatus: r.rsiStatus || '',
-      roc: r.roc || '—',
-      rocStatus: r.rocStatus || '',
-      obv: r.obv || '—',
-      obvStatus: r.obvStatus || '',
-      support: r.support || '—',
-      resist: r.resist || '—',
-      buyPrice: r.buyPrice || '—',
-      analysis: r.analysis || '',
-      warning: r.warning || '',
-      createdAt: serverTimestamp(),
-      time: new Date().toLocaleString('zh-TW')
-    };
-    const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'history'), record);
-    analysisHistory.unshift({ id: docRef.id, ...record });
-    if (analysisHistory.length > 20) analysisHistory.pop();
-    renderHistory();
-  } catch(e) {
-    console.error('儲存失敗', e);
-  }
+  const record = {
+    verdict: r.verdict,
+    verdictType: r.verdictType,
+    stockCode: r.stockCode || '—',
+    stockName: r.stockName || '—',
+    rsi: r.rsi || '—',
+    rsiStatus: r.rsiStatus || '',
+    roc: r.roc || '—',
+    rocStatus: r.rocStatus || '',
+    obv: r.obv || '—',
+    obvStatus: r.obvStatus || '',
+    support: r.support || '—',
+    resist: r.resist || '—',
+    buyPrice: r.buyPrice || '—',
+    analysis: r.analysis || '',
+    warning: r.warning || '',
+    time: new Date().toLocaleString('zh-TW')
+  };
+  analysisHistory.unshift(record);
+  if (analysisHistory.length > 20) analysisHistory.pop();
+  renderHistory();
 }
+
+// Save API key to localStorage
+document.getElementById('apiKeyInput').addEventListener('change', function() {
+  const key = this.value.trim();
+  if (key) localStorage.setItem('geminiKey', key);
+});
+
+// Load API key from localStorage
+const savedKey = localStorage.getItem('geminiKey');
+if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
 
 // ── State ──
 let imageBase64 = null;
